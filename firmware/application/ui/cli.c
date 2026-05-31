@@ -778,6 +778,12 @@ void CLIProcess()
                         currentVehicleId[3] & 0xF,
                         currentVehicleId[4]
                     );
+                } else if (UtilsStricmp(msgBuf[1], "LMPOLL") == 0) {
+                    if (ConfigGetSetting(CONFIG_SETTING_LM_IO_POLL_DISABLED) == CONFIG_SETTING_ON) {
+                        CLIWrite("LM Poll: Off\r\n");
+                    } else {
+                        CLIWrite("LM Poll: On\r\n");
+                    }
                 } else {
                     cmdSuccess = 0;
                 }
@@ -1129,13 +1135,20 @@ void CLIProcess()
                 CLIWrite("    BT AT command> - Send raw AT command\r\n");
                 CLIWrite("    BT DIAL <number> <name> - Dial a number and display name\r\n");
                 CLIWrite("    BT REDIAL - Dial last number\r\n");
+                CLIWrite("    SEND IBUS <src> <size> <dst> <data bytes...> - Send a raw IBus packet, <size> is ignored (calculated), bytes are 2 digit HEX\r\n");
+                CLIWrite("    GET BYTE <addr> - Read a stored config byte at address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
                 CLIWrite("    GET DAC - Get info from the PCM5122 DAC\r\n");
-                CLIWrite("    GET ERR - Get the Error counter\r\n");
-                CLIWrite("    GET IBUS - Get debug info from the IBus\r\n");
+                CLIWrite("    GET ERR - Get the Error counters\r\n");
+                CLIWrite("    GET IBUS - Get debug info from the IBus (graphics terminal and radio)\r\n");
+                CLIWrite(".   GET LCM - Get debug info from the light control module\r\n");
                 CLIWrite("    GET UI - Get the current UI Mode\r\n");
                 CLIWrite("    GET I2S - Read the WM8804 INT/SPD Status registers\r\n");
                 CLIWrite("    GET VIN - Read the stored vehicle VIN\r\n");
+                CLIWrite("    GET PWROFF - Get the auto power off Status\r\n");
+                CLIWrite("    GET LMPOLL - Get the LM Polling Status\r\n");
                 CLIWrite("    REBOOT - Reboot the device\r\n");
+                CLIWrite("    RESET TRAPS - Reset the Error counters\r\n");
+                CLIWrite("    SET BYTE <addr> <value> - Write a config byte <value> to address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
                 CLIWrite("    SET COMFORT BLINKERS x - Set the comfort blinkers between 1 and 8\r\n");
                 CLIWrite("    SET COMFORT LOCK x - Lock the car at the given KM/h. 10, 20 or OFF\r\n");
                 CLIWrite("    SET COMFORT UNLOCK x - Unlock the car at the given ignition position. POS0, POS1 or OFF\r\n");
@@ -1144,6 +1157,7 @@ void CLIProcess()
                 CLIWrite("    SET IGN ON/OFF/ALWAYSON - Send the ignition status message or configure the BlueBus to assume the ignition is always on\r\n");
                 CLIWrite("    SET LOG x ON/OFF - Change logging for x (BT, IBUS, SYS, UI)\r\n");
                 CLIWrite("    SET PWROFF ON/OFF - Enable or disable auto power off\r\n");
+                CLIWrite("    SET LMPOLL ON/OFF - Enable or disable polling the LM status\r\n");
                 CLIWrite("    SET TEL ON/OFF - Enable/Disable output as the TCU\r\n");
                 CLIWrite("    SET TIME HH MM - Set the IKE Time\r\n");
                 CLIWrite("    SET UI x - Set the UI to x, where x:\r\n");
@@ -1152,6 +1166,7 @@ void CLIProcess()
                 CLIWrite("        x = 3. MID (Multi-Info Display)\r\n");
                 CLIWrite("        x = 4. BMBT / MID\r\n");
                 CLIWrite("        x = 5. Business Navigation (MIR)\r\n");
+                CLIWrite("    SET VIN CLEAR - Clear the stored VIN\r\n");
                 CLIWrite("    RESTORE - Fully Reset the BlueBus and BC127 to factory defaults\r\n");
                 CLIWrite("    VERSION - Get the BlueBus Hardware/Software Versions\r\n");
             } else {
