@@ -641,6 +641,12 @@ void CLIProcess()
                         currentVehicleId[3] & 0xF,
                         currentVehicleId[4]
                     );
+                } else if (UtilsStricmp(msgBuf[1], "LMPOLL") == 0) {
+                    if (ConfigGetSetting(CONFIG_SETTING_LM_IO_POLL_DISABLED) == CONFIG_SETTING_ON) {
+                        LogRaw("LM Poll: Off\r\n");
+                    } else {
+                        LogRaw("LM Poll: On\r\n");
+                    }
                 } else {
                     cmdSuccess = 0;
                 }
@@ -989,13 +995,20 @@ void CLIProcess()
                 LogRaw("    BT AT command> - Send raw AT command\r\n");
                 LogRaw("    BT DIAL <number> <name> - Dial a number and display name\r\n");
                 LogRaw("    BT REDIAL - Dial last number\r\n");
+                LogRaw("    SEND IBUS <src> <size> <dst> <data bytes...> - Send a raw IBus packet, <size> is ignored (calculated), bytes are 2 digit HEX\r\n");
+                LogRaw("    GET BYTE <addr> - Read a stored config byte at address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
                 LogRaw("    GET DAC - Get info from the PCM5122 DAC\r\n");
-                LogRaw("    GET ERR - Get the Error counter\r\n");
-                LogRaw("    GET IBUS - Get debug info from the IBus\r\n");
+                LogRaw("    GET ERR - Get the Error counters\r\n");
+                LogRaw("    GET IBUS - Get debug info from the IBus (graphics terminal and radio)\r\n");
+                LogRaw(".   GET LCM - Get debug info from the light control module\r\n");
                 LogRaw("    GET UI - Get the current UI Mode\r\n");
                 LogRaw("    GET I2S - Read the WM8804 INT/SPD Status registers\r\n");
                 LogRaw("    GET VIN - Read the stored vehicle VIN\r\n");
+                LogRaw("    GET PWROFF - Get the auto power off Status\r\n");
+                LogRaw("    GET LMPOLL - Get the LM Polling Status\r\n");
                 LogRaw("    REBOOT - Reboot the device\r\n");
+                LogRaw("    RESET TRAPS - Reset the Error counters\r\n");
+                LogRaw("    SET BYTE <addr> <value> - Write a config byte <value> to address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
                 LogRaw("    SET COMFORT BLINKERS x - Set the comfort blinkers between 1 and 8\r\n");
                 LogRaw("    SET COMFORT LOCK x - Lock the car at the given KM/h. 10, 20 or OFF\r\n");
                 LogRaw("    SET COMFORT UNLOCK x - Unlock the car at the given ignition position. POS0, POS1 or OFF\r\n");
@@ -1004,6 +1017,7 @@ void CLIProcess()
                 LogRaw("    SET IGN ON/OFF/ALWAYSON - Send the ignition status message or configure the BlueBus to assume the ignition is always on\r\n");
                 LogRaw("    SET LOG x ON/OFF - Change logging for x (BT, IBUS, SYS, UI)\r\n");
                 LogRaw("    SET PWROFF ON/OFF - Enable or disable auto power off\r\n");
+                LogRaw("    SET LMPOLL ON/OFF - Enable or disable polling the LM status\r\n");
                 LogRaw("    SET TEL ON/OFF - Enable/Disable output as the TCU\r\n");
                 LogRaw("    SET TIME HH MM - Set the IKE Time\r\n");
                 LogRaw("    SET UI x - Set the UI to x, where x:\r\n");
@@ -1012,6 +1026,7 @@ void CLIProcess()
                 LogRaw("        x = 3. MID (Multi-Info Display)\r\n");
                 LogRaw("        x = 4. BMBT / MID\r\n");
                 LogRaw("        x = 5. Business Navigation (MIR)\r\n");
+                LogRaw("    SET VIN CLEAR - Clear the stored VIN\r\n");
                 LogRaw("    RESTORE - Fully Reset the BlueBus and BC127 to factory defaults\r\n");
                 LogRaw("    VERSION - Get the BlueBus Hardware/Software Versions\r\n");
             } else {
