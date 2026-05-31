@@ -240,7 +240,7 @@ static void IBusHandleGMMessage(IBus_t *ibus, uint8_t *pkt)
     ) {
         uint8_t diagnosticIdx = pkt[10];
         uint8_t moduleVariant = 0x00;
-        LogRaw("\r\nIBus: GM DI: %02X\r\n", diagnosticIdx);
+        // LogRaw("\r\nIBus: GM DI: %02X\r\n", diagnosticIdx);
         if (diagnosticIdx < 0x20) {
             LogInfo(LOG_SOURCE_IBUS, "GM: ZKE4");
             moduleVariant = IBUS_GM_ZKE4;
