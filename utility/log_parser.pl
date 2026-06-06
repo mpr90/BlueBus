@@ -30,6 +30,14 @@
 # --ignore-device=dev1,dev2 --ignore-device=FF
 #				Ignore listed devices, specified by name, or hex ID
 #
+# IBUS parsed messages are printed like this:
+#
+#   Timestamp   (        ) flag Src -> Dst Cmd CmdName ( PrsedData )
+# ============================================================================
+#   0:01:55.118 (        ) * B  CDC -> RAD  02 CDC_STATUS_RESP (00 76 )
+# * = message from self
+# B = broadcast message ( destination is broadcast address )
+#
 # Examples:
 # parse the file adding time and ignoring non bus messages, page and interactively search:
 # ./bb-log-parse.pl your_blubus_session.log | more
