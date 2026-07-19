@@ -452,6 +452,7 @@ my %data_parsers = (
 	"CDC_REQUEST" => \&ike_data_parsers_cdc_request,
 
 	"IKE_OBC_INPUT" => \&ike_data_parsers_ike_obc_input,
+	"IKE_OBC_CONTROL" => \&ike_data_parsers_ike_obc_control,
 	"IKE_BROADCAST_OBC_TEXT" => \&ike_data_parsers_obc_text,
 	"IKE_BROADCAST_SPEED_RPM_UPDATE" => \&ike_data_parsers_speed_rpm,
 	"IKE_BROADCAST_TEMP_UPDATE" => \&ike_data_parsers_ike_temp,
@@ -1705,6 +1706,44 @@ sub ike_data_parsers_ike_obc_input {
 	}
 
 	return "property=$property, value=$value";
+}
+
+sub ike_data_parsers_ike_obc_control {
+	my ($src, $dst, $string, $data) = @_;
+
+	my $property = $data->[0];
+
+	my %properties = (
+		0x01 => "TIME",
+		0x02 => "DATE",
+		0x03 => "TEMP",
+		0x04 => "CONSUMPTION_1",
+		0x05 => "CONSUMPTION_2",
+		0x06 => "RANGE",
+		0x07 => "DISTANCE",
+		0x08 => "ARRIVAL",
+		0x09 => "LIMIT",
+		0x0a => "AVG_SPEED",
+		0x0e => "TIMER",
+		0x0f => "AUX_TIMER_1",
+		0x10 => "AUX_TIMER_2",
+		0x16 => "CODE_EMERGENCY_DEACIVATION",
+		0x1a => "TIMER_LAP",
+	);
+
+	$property = lookup_value($property,\%properties);
+
+	my $value = '';
+	$value = $data->[1];
+
+	if ($value eq 1) {	# IBUS_IKE_OBC_PROPERTY_REQUEST_TEXT
+		$value = 'REQUEST_TEXT'
+	} else {
+		$string =~ s/^...//o;
+		$value = sprintf("($string)");
+	}
+
+	return "$value property=$property";
 }
 
 sub ike_data_parsers_ike_odo_response {
