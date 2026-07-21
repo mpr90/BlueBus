@@ -7,12 +7,12 @@
 #include "bt_bm83.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "bt_common.h"
 #include "../event.h"
 #include "../locale.h"
 #include "../log.h"
-#include "../timer.h"
 #include "../utils.h"
 
 int8_t BTBM83MicGainTable[] = {
@@ -1586,13 +1586,14 @@ void BM83Process(BT_t *bt)
     uint16_t queueSize = CharQueueGetSize(&bt->uart.rxQueue);
     if (queueSize >= BM83_FRAME_SIZE_MIN && hasStartWord != 0) {
         if (hasStartWord != 1) {
-            LogRawDebug(LOG_SOURCE_BT, "BT: Trash Bytes: ");
-            while (hasStartWord > 1) {
-                uint8_t byte = CharQueueNext(&bt->uart.rxQueue);
-                LogRawDebug(LOG_SOURCE_BT, "%02X ", byte);
-                hasStartWord--;
+            uint16_t trashCount = hasStartWord - 1;
+            uint8_t trashBytes[trashCount];
+            uint16_t i = 0;
+            for (i = 0; i < trashCount; i++) {
+                trashBytes[i] = CharQueueNext(&bt->uart.rxQueue);
             }
-            LogRawDebug(LOG_SOURCE_BT, "\r\n");
+            hasStartWord = 1;
+            LogDebugByteArray(LOG_SOURCE_BT, trashBytes, trashCount, 0, "BT: Trash Bytes");
         }
         uint8_t lengthHigh = CharQueueGetOffset(&bt->uart.rxQueue, 1);
         uint8_t lengthLow = CharQueueGetOffset(&bt->uart.rxQueue, 2);
@@ -1605,31 +1606,22 @@ void BM83Process(BT_t *bt)
                 LogError("BT: Frame too large: %d", dataLength);
                 return;
             }
-            long long unsigned int ts = (long long unsigned int) TimerGetMillis();
-            LogRawDebug(LOG_SOURCE_BT, "[%llu] DEBUG: BM83: RX: ", ts);
             uint16_t frameSize = frameLength + BM83_FRAME_CTRL_BYTE_COUNT;
+            uint8_t rawFrame[frameSize];
+            uint16_t i;
+            for (i = 0; i < frameSize; i++) {
+                rawFrame[i] = CharQueueNext(&bt->uart.rxQueue);
+            }
+            uint8_t event = rawFrame[BM83_OFFSET_EVENT_CODE];
             uint8_t eventData[BM83_FRAME_DATA_MAX];
-            memset(eventData, 0, dataLength);
-            uint8_t event = 0x00;
-            uint16_t i = 0;
-            uint16_t j = 0;
             // lastIdx is the index of the checksum
             uint16_t lastIdx = frameSize - 1;
-            // Get the data
-            for (i = 0; i < frameSize; i++) {
-                uint8_t byte = CharQueueNext(&bt->uart.rxQueue);
-                LogRawDebug(LOG_SOURCE_BT, "%02X ", byte);
-                if (i == BM83_OFFSET_EVENT_CODE) {
-                    event = byte;
-                }
-                if (i >= BM83_OFFSET_EVENT_DATA &&
-                    i < lastIdx
-                ) {
-                    eventData[j] = byte;
-                    j++;
-                }
+            uint16_t j = 0;
+            for (i = BM83_OFFSET_EVENT_DATA; i < lastIdx; i++) {
+                eventData[j] = rawFrame[i];
+                j++;
             }
-            LogRawDebug(LOG_SOURCE_BT, "\r\n");
+            LogDebugByteArray(LOG_SOURCE_BT, rawFrame, frameSize, 0, "DEBUG: BM83: RX");
             // Always acknowledge reception of the frame first
             if (event != BM83_EVT_COMMAND_ACK) {
                 uint8_t ack[] = {BM83_CMD_EVENT_ACK, event};
@@ -1722,12 +1714,6 @@ void BM83SendCommand(
     size_t size
 ) {
     uint8_t idx = 0;
-    long long unsigned int ts = (long long unsigned int) TimerGetMillis();
-    LogRawDebug(
-        LOG_SOURCE_BT,
-        "[%llu] DEBUG: BM83: TX: AA 00 ",
-        ts
-    );
     uint16_t frameSize = size + BM83_FRAME_CTRL_BYTE_COUNT;
     uint8_t frame[frameSize];
     memset(frame, 0, frameSize);
@@ -1735,16 +1721,13 @@ void BM83SendCommand(
     frame[0] = BM83_UART_START_WORD;
     frame[1] = 0x00;
     frame[2] = size;
-    // Send the length
-    LogRawDebug(LOG_SOURCE_BT, "%02X ", size);
     checksum = checksum - size;
     for (idx = 0; idx < size; idx++) {
         frame[idx + 3] = targetData[idx];
         checksum = checksum - targetData[idx];
-        LogRawDebug(LOG_SOURCE_BT, "%02X ", targetData[idx]);
     }
     checksum++;
-    LogRawDebug(LOG_SOURCE_BT, "%02X\r\n", checksum);
     frame[frameSize - 1] = checksum;
+    LogDebugByteArray(LOG_SOURCE_BT, frame, frameSize, 0, "DEBUG: BM83: TX");
     UARTSendData(&bt->uart, frame, frameSize);
 }

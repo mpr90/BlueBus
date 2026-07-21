@@ -629,12 +629,17 @@ void CD53IBusMFLButton(void *ctx, unsigned char *pkt)
 void CD53IBusRADWriteDisplay(void *ctx, unsigned char *pkt)
 {
     CD53Context_t *context = (CD53Context_t *) ctx;
+    if (context->mode == CD53_MODE_OFF) {
+        return;
+    }
+    // 0xC4 = CDC on MIR
     if (pkt[IBUS_PKT_DB1] == 0xC4) {
         context->radioType = CONFIG_UI_MIR;
+        TimerTriggerScheduledTask(context->displayUpdateTaskId);
     }
-    // Ensure that the display mode is 0xC4 so we know we did not write this
-    // to the display
-    if (context->mode != CD53_MODE_OFF && pkt[IBUS_PKT_DB1] == 0xC4) {
+    // We use 0x32 as our text option rather than 0x30 like the RAD does
+    // in IRIS mode
+    if (pkt[IBUS_PKT_DST] == IBUS_DEVICE_IRIS && pkt[IBUS_PKT_DB2] == 0x30) {
         TimerTriggerScheduledTask(context->displayUpdateTaskId);
     }
 }

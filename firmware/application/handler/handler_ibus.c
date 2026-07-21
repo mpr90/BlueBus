@@ -304,8 +304,6 @@ static void HandlerIBusLMActivateBulbs(
             context->lmState.parkingLampsMode = HANDLER_LM_COMF_PARKING_OFF;
             blinkers = HANDLER_LM_COMF_BLINK_OFF;
             context->lmState.blinkMode = HANDLER_LM_COMF_BLINK_OFF;
-            homeLights = IBUS_LM_HOME_OFF;
-            context->lmState.homeLightsMode = IBUS_LM_HOME_OFF;
             break;
         case HANDLER_LM_EVENT_BLINK_OFF:
             blinkers = HANDLER_LM_COMF_BLINK_OFF;
@@ -373,7 +371,8 @@ static void HandlerIBusSwitchUI(HandlerContext_t *context, uint8_t newUi)
         }
         ConfigSetUIMode(newUi);
         context->uiMode = newUi;
-        if (newUi == CONFIG_UI_CD53 ||
+        if (
+            newUi == CONFIG_UI_CD53 ||
             newUi == CONFIG_UI_MIR ||
             newUi == CONFIG_UI_IRIS
         ) {
@@ -699,9 +698,9 @@ void HandlerIBusGMIdentResponse(void *ctx, uint8_t *pkt)
 /**
  * HandlerIBusGMRemoteKeyEntry()
  *     Description:
- *         Handle key fob remote key entry events from the GM (Body Module).
+ *         Handle key fob remote key entry events from the GM.
  *         When the unlock button is pressed and ignition is off, activate
- *         Welcome Home lights (high beams + taillights) for 30 seconds.
+ *         Welcome Home lights for 30 seconds.
  *     Params:
  *         void *ctx - The context provided at registration
  *         uint8_t *pkt - The IBus Packet
@@ -721,7 +720,7 @@ void HandlerIBusGMRemoteKeyEntry(void *ctx, uint8_t *pkt)
             homeLights == CONFIG_SETTING_HOME_LIGHTS_BOTH
         )
     ) {
-        LogInfo(LOG_SOURCE_SYSTEM, "Handler: Welcome Home Lights On");
+        LogInfo(LOG_SOURCE_SYSTEM, "Handler: WHL: On");
         HandlerIBusLMActivateBulbs(context, HANDLER_LM_EVENT_HOME_WELCOME);
     }
 }
@@ -754,15 +753,22 @@ void HandlerIBusGMDoorsFlapsStatusResponse(void *ctx, uint8_t *pkt)
         LogInfo(LOG_SOURCE_SYSTEM, "Handler: Central Locks unlocked");
         context->gmState.doorsLocked = 0;
     }
-    // Follow Me Home: activate when driver door opens while armed
-    // Do not check if the setting is enabled as it can only enter the armed
-    // state if a prior check passes
+    // Terminate Welcome Home lights when the driver door opens
+    if (
+        context->lmState.homeLightsMode == IBUS_LM_HOME_WELCOME &&
+        (pkt[IBUS_PKT_DB1] & 0x01)
+    ) {
+        LogInfo(LOG_SOURCE_SYSTEM, "Handler: WHL: Off (Door Open)");
+        HandlerIBusLMActivateBulbs(context, HANDLER_LM_EVENT_HOME_OFF);
+    }
+    // Follow Me Home: Activate when driver door opens while armed
+    // (ignition was previously on and is now off)
     if (
         context->lmState.homeLightsArmed == 1 &&
         (pkt[IBUS_PKT_DB1] & 0x01)
     ) {
         context->lmState.homeLightsArmed = 0;
-        LogInfo(LOG_SOURCE_SYSTEM, "Handler: Follow Lights On");
+        LogInfo(LOG_SOURCE_SYSTEM, "Handler: FMHL: On");
         HandlerIBusLMActivateBulbs(context, HANDLER_LM_EVENT_HOME_FOLLOW);
     }
 }
@@ -906,10 +912,10 @@ void HandlerIBusIKEIgnitionStatus(void *ctx, uint8_t *pkt)
             context->gmState.lowSideDoors = 0;
             TimerUnregisterScheduledTask(&HandlerTimerIBusIdent);
             // Arm Follow Me Home if ignition was at KL15 or above
-            uint8_t homeLights = ConfigGetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS);
+            uint8_t homeLightss = ConfigGetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS);
             if (
-                homeLights == CONFIG_SETTING_HOME_LIGHTS_FOLLOW ||
-                homeLights == CONFIG_SETTING_HOME_LIGHTS_BOTH
+                homeLightss == CONFIG_SETTING_HOME_LIGHTS_FOLLOW ||
+                homeLightss == CONFIG_SETTING_HOME_LIGHTS_BOTH
             ) {
                 context->lmState.homeLightsArmed = 1;
             }
@@ -2086,6 +2092,9 @@ void HandlerTimerIBusLightingState(void *ctx)
         if (context->lmState.homeLightsTicks >= HANDLER_LM_HOME_LIGHT_INTERVALS) {
             LogInfo(LOG_SOURCE_SYSTEM, "Handler: Home Lights Timeout");
             HandlerIBusLMActivateBulbs(context, HANDLER_LM_EVENT_HOME_OFF);
+        }
+        if ((TimerGetMillis() - context->lmLastStatusSet) >= 10000) {
+            HandlerIBusLMActivateBulbs(context, HANDLER_LM_EVENT_REFRESH);
         }
     }
 }

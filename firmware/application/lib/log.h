@@ -16,11 +16,12 @@
 #define LOG_SOURCE_IBUS CONFIG_DEVICE_LOG_IBUS
 #define LOG_SOURCE_SYSTEM CONFIG_DEVICE_LOG_SYSTEM
 #define LOG_SOURCE_UI CONFIG_DEVICE_LOG_UI
+#define LOG_HEX_BYTE_SIZE 4
 void LogMessage(const char *, const char *);
 void LogRaw(const char *, ...);
-void LogRawDebug(uint8_t, const char *, ...);
 void LogError(const char *, ...);
 void LogDebug(uint8_t, const char *, ...);
+void LogDebugByteArray(uint8_t, uint8_t *, uint16_t, const char *, const char *, ...);
 void LogInfo(uint8_t, const char *, ...);
 void LogWarning(const char *, ...);
 #endif /* LOG_H */

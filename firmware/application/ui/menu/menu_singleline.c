@@ -24,6 +24,7 @@ static uint8_t SETTINGS_MENU[] = {
     MENU_SINGLELINE_SETTING_IDX_TEL_TCU_MODE,
     MENU_SINGLELINE_SETTING_IDX_BLINKERS,
     MENU_SINGLELINE_SETTING_IDX_PARK_LIGHTS,
+    MENU_SINGLELINE_SETTING_IDX_HOME_LIGHTS,
     MENU_SINGLELINE_SETTING_IDX_COMFORT_LOCKS,
     MENU_SINGLELINE_SETTING_IDX_COMFORT_UNLOCK,
     MENU_SINGLELINE_SETTING_IDX_VISUAL_PDC,
@@ -43,6 +44,7 @@ static uint8_t SETTINGS_TO_CONFIG_MAP[] = {
     CONFIG_SETTING_TEL_MODE,
     CONFIG_SETTING_COMFORT_BLINKERS,
     CONFIG_SETTING_COMFORT_PARKING_LAMPS,
+    CONFIG_SETTING_COMFORT_HOME_LIGHTS,
     CONFIG_SETTING_COMFORT_LOCKS,
     CONFIG_SETTING_COMFORT_UNLOCK,
     CONFIG_SETTING_VISUAL_PDC
@@ -842,6 +844,38 @@ void MenuSingleLineSettingsNextSetting(MenuSingleLineContext_t *context, uint8_t
             );
         }
     }
+    if (nextMenu == MENU_SINGLELINE_SETTING_IDX_HOME_LIGHTS) {
+        context->settingValue = ConfigGetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS);
+        if (context->settingValue == CONFIG_SETTING_HOME_LIGHTS_WELCOME) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Home Lights: Welcome",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+        } else if (context->settingValue == CONFIG_SETTING_HOME_LIGHTS_FOLLOW) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Home Lights: Follow",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+        } else if (context->settingValue == CONFIG_SETTING_HOME_LIGHTS_BOTH) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Home Lights: Both",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+        } else {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Home Lights: Off",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+        }
+    }
     if (nextMenu == MENU_SINGLELINE_SETTING_IDX_ABOUT) {
         char firmwareVersion[6] = {0};
         ConfigGetFirmwareVersionString(firmwareVersion);
@@ -1199,6 +1233,41 @@ void MenuSingleLineSettingsNextValue(MenuSingleLineContext_t *context, uint8_t d
                 MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
             );
             context->settingValue = CONFIG_SETTING_PDC_BOTH;
+        } else {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Off",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+            context->settingValue = CONFIG_SETTING_OFF;
+        }
+    }
+    if (context->settingIdx == MENU_SINGLELINE_SETTING_IDX_HOME_LIGHTS) {
+        if (context->settingValue == CONFIG_SETTING_OFF) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Welcome",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+            context->settingValue = CONFIG_SETTING_HOME_LIGHTS_WELCOME;
+        } else if (context->settingValue == CONFIG_SETTING_HOME_LIGHTS_WELCOME) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Follow",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+            context->settingValue = CONFIG_SETTING_HOME_LIGHTS_FOLLOW;
+        } else if (context->settingValue == CONFIG_SETTING_HOME_LIGHTS_FOLLOW) {
+            MenuSingleLineSetDisplayText(
+                context,
+                "Both",
+                0,
+                MENU_SINGLELINE_DISPLAY_UPDATE_MAIN
+            );
+            context->settingValue = CONFIG_SETTING_HOME_LIGHTS_BOTH;
         } else {
             MenuSingleLineSetDisplayText(
                 context,

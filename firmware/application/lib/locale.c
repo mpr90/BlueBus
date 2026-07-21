@@ -98,6 +98,10 @@ static char *LOCALE_LANG_ENGLISH[] = {
     "Auto",
     "True Speed: On",
     "True Speed: Off",
+    "Home Lts.: Off",
+    "Home Lts.: Welc",
+    "Home Lts.: Fol.",
+    "Home Lts.: Both",
 };
 
 static char *LOCALE_LANG_FRENCH[] = {
@@ -191,6 +195,10 @@ static char *LOCALE_LANG_FRENCH[] = {
     "Auto",
     "V. R\xE9""elle: Oui",
     "V. R\xE9""elle: Non",
+    "Feux M.: Non",
+    "Feux M.: Bienve",
+    "Feux M.: Suivi",
+    "Feux M.: Les 2",
 };
 
 static char *LOCALE_LANG_ITALIAN[] = {
@@ -284,6 +292,10 @@ static char *LOCALE_LANG_ITALIAN[] = {
     "Auto",
     "Vel. Reale: S\xEC",
     "Vel. Reale: No",
+    "Luci C.: No",
+    "Luci C.: Benve",
+    "Luci C.: Seg.",
+    "Luci C.: Entram",
 };
 
 static char *LOCALE_LANG_DUTCH[] = {
@@ -377,6 +389,10 @@ static char *LOCALE_LANG_DUTCH[] = {
     "Auto",
     "W. Snelh.: Aan",
     "W. Snelh.: Uit",
+    "Thuisl.: Uit",
+    "Thuisl.: Welk.",
+    "Thuisl.: Volg.",
+    "Thuisl.: Beide",
 };
 
 static char *LOCALE_LANG_ESTONIAN[] = {
@@ -470,6 +486,10 @@ static char *LOCALE_LANG_ESTONIAN[] = {
     "Auto",
     "T. Kiirus: Sees",
     "T. Kiirus: V\xe4lj",
+    "Kodutuled: V\xE4lj",
+    "Kodutuled: Terv",
+    "Kodutuled: J\xE4rg",
+    "Kodutuled: M\xF5l.",
 };
 
 static char LOCALE_LANG_RUSSIAN[][24] = {
@@ -563,6 +583,10 @@ static char LOCALE_LANG_RUSSIAN[][24] = {
     "Auto",
     "True Spd: On",
     "True Spd: Off",
+    "Home Lts.: Off",
+    "Home Lts.: Welc",
+    "Home Lts.: Fol.",
+    "Home Lts.: Both",
 };
 
 static char *LOCALE_LANG_GERMAN[] = {
@@ -656,6 +680,10 @@ static char *LOCALE_LANG_GERMAN[] = {
     "Auto",
     "W. Geschw: Ein",
     "W. Geschw: Aus",
+    "Heim Lt.: Aus",
+    "Heim Lt.: Begr\xFC",
+    "Heim Lt.: Folg.",
+    "Heim Lt.: Beide",
 };
 
 static char *LOCALE_LANG_SPANISH[] = {
@@ -749,6 +777,10 @@ static char *LOCALE_LANG_SPANISH[] = {
     "Auto",
     "V. Real: Enc.",
     "V. Real: Apg.",
+    "Luces H.: Apg.",
+    "Luces H.: Bien.",
+    "Luces H.: Seg.",
+    "Luces H.: Ambos",
 };
 
 static char *LOCALE_LANG_POLISH[] = {
@@ -842,6 +874,10 @@ static char *LOCALE_LANG_POLISH[] = {
     "Auto",
     "Pred. Rz.: Wl.",
     "Pred. Rz.: Wyl.",
+    "Sw. dom.: Wyl.",
+    "Sw. dom.: Pow.",
+    "Sw. dom.: Odpr.",
+    "Sw. dom.: Oba",
 };
 
 /**

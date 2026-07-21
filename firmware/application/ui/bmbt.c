@@ -1299,8 +1299,38 @@ static void BMBTMenuSettingsComfort(BMBTContext_t *context)
         context,
         BMBT_MENU_IDX_SETTINGS_COMFORT_VISUAL_PDC,
         pdcText,
-        2
+        0
     );
+    uint8_t homeLights = ConfigGetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS);
+    if (homeLights == CONFIG_SETTING_HOME_LIGHTS_WELCOME) {
+        BMBTGTWriteIndex(
+            context,
+            BMBT_MENU_IDX_SETTINGS_COMFORT_HOME_LIGHTS,
+            LocaleGetText(LOCALE_STRING_HOME_LIGHTS_WELCOME),
+            1
+        );
+    } else if (homeLights == CONFIG_SETTING_HOME_LIGHTS_FOLLOW) {
+        BMBTGTWriteIndex(
+            context,
+            BMBT_MENU_IDX_SETTINGS_COMFORT_HOME_LIGHTS,
+            LocaleGetText(LOCALE_STRING_HOME_LIGHTS_FOLLOW),
+            1
+        );
+    } else if (homeLights == CONFIG_SETTING_HOME_LIGHTS_BOTH) {
+        BMBTGTWriteIndex(
+            context,
+            BMBT_MENU_IDX_SETTINGS_COMFORT_HOME_LIGHTS,
+            LocaleGetText(LOCALE_STRING_HOME_LIGHTS_BOTH),
+            1
+        );
+    } else {
+        BMBTGTWriteIndex(
+            context,
+            BMBT_MENU_IDX_SETTINGS_COMFORT_HOME_LIGHTS,
+            LocaleGetText(LOCALE_STRING_HOME_LIGHTS_OFF),
+            1
+        );
+    }
     BMBTGTWriteIndex(context, BMBT_MENU_IDX_BACK, LocaleGetText(LOCALE_STRING_BACK), 0);
     BMBTGTBufferFlush(context);
     context->menu = BMBT_MENU_SETTINGS_COMFORT;
@@ -1926,6 +1956,22 @@ static void BMBTSettingsUpdateComfort(BMBTContext_t *context, uint8_t selectedId
             pdcText,
             1
         );
+    } else if (selectedIdx == BMBT_MENU_IDX_SETTINGS_COMFORT_HOME_LIGHTS) {
+        uint8_t homeLights = ConfigGetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS);
+        if (homeLights == CONFIG_SETTING_OFF) {
+            homeLights = CONFIG_SETTING_HOME_LIGHTS_WELCOME;
+            BMBTGTWriteIndex(context, selectedIdx, LocaleGetText(LOCALE_STRING_HOME_LIGHTS_WELCOME), 0);
+        } else if (homeLights == CONFIG_SETTING_HOME_LIGHTS_WELCOME) {
+            homeLights = CONFIG_SETTING_HOME_LIGHTS_FOLLOW;
+            BMBTGTWriteIndex(context, selectedIdx, LocaleGetText(LOCALE_STRING_HOME_LIGHTS_FOLLOW), 0);
+        } else if (homeLights == CONFIG_SETTING_HOME_LIGHTS_FOLLOW) {
+            homeLights = CONFIG_SETTING_HOME_LIGHTS_BOTH;
+            BMBTGTWriteIndex(context, selectedIdx, LocaleGetText(LOCALE_STRING_HOME_LIGHTS_BOTH), 0);
+        } else {
+            homeLights = CONFIG_SETTING_OFF;
+            BMBTGTWriteIndex(context, selectedIdx, LocaleGetText(LOCALE_STRING_HOME_LIGHTS_OFF), 0);
+        }
+        ConfigSetSetting(CONFIG_SETTING_COMFORT_HOME_LIGHTS, homeLights);
     } else if (selectedIdx == BMBT_MENU_IDX_BACK) {
         BMBTMenuSettings(context);
     }

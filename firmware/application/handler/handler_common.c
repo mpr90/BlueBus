@@ -98,25 +98,21 @@ void HandlerSetVolume(HandlerContext_t *context, uint8_t direction)
         "Set Vol: %s",
         (direction == HANDLER_VOLUME_DIRECTION_DOWN) ? "Down" : "Up"
     );
-    if (direction == HANDLER_VOLUME_DIRECTION_DOWN) {
-        for (i = 0; i < HANDLER_VOLUME_STEPS; i++) {
-            IBusCommandSetVolume(
-                context->ibus,
-                IBUS_DEVICE_MFL,
-                IBUS_DEVICE_RAD,
-                IBUS_RAD_VOLUME_DOWN
-            );
-        }
-        context->volumeMode = HANDLER_VOLUME_MODE_LOWERED;
-    } else {
-        for (i = 0; i < HANDLER_VOLUME_STEPS; i++) {
-            IBusCommandSetVolume(
-                context->ibus,
-                IBUS_DEVICE_MFL,
-                IBUS_DEVICE_RAD,
-                IBUS_RAD_VOLUME_UP
-            );
-        }
+    uint8_t volumeCommand = 0x10 | IBUS_RAD_VOLUME_DOWN;
+    if (direction == HANDLER_VOLUME_DIRECTION_UP) {
+        volumeCommand = 0x10 | IBUS_RAD_VOLUME_UP;
+    }
+    for (i = 0; i < HANDLER_VOLUME_STEPS; i++) {
+        IBusCommandSetVolume(
+            context->ibus,
+            IBUS_DEVICE_MFL,
+            IBUS_DEVICE_RAD,
+            volumeCommand
+        );
+    }
+    if (direction == HANDLER_VOLUME_DIRECTION_UP) {
         context->volumeMode = HANDLER_VOLUME_MODE_NORMAL;
+    } else {
+        context->volumeMode = HANDLER_VOLUME_MODE_LOWERED;
     }
 }

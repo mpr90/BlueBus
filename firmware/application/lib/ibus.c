@@ -519,6 +519,26 @@ static void IBusHandleIKEMessage(IBus_t *ibus, uint8_t *pkt)
 }
 
 /**
+ * IBusHandleIRISMessage()
+ *     Description:
+ *         Handle any messages received from the IRIS (Integrated Radio Information System)
+ *     Params:
+ *         uint8_t *pkt - The frame received on the IBus
+ *     Returns:
+ *         None
+ */
+static void IBusHandleIRISMessage(IBus_t *ibus, uint8_t *pkt)
+{
+    if (pkt[IBUS_PKT_CMD] == IBUS_CMD_MOD_STATUS_RESP) {
+        IBusHandleModuleStatus(ibus, IBUS_DEVICE_IRIS);
+    }
+    // Any IRIS Traffic should trigger the module status update
+    if (ibus->moduleStatus.IRIS == 0) {
+        IBusHandleModuleStatus(ibus, IBUS_DEVICE_IRIS);
+    }
+}
+
+/**
  * IBusHandleLCMMessage()
  *     Description:
  *         Handle any messages received from the LCM (Lighting Control Module)
@@ -769,9 +789,10 @@ static void IBusHandleRADMessage(IBus_t *ibus, uint8_t *pkt)
             }
             EventTriggerCallback(IBUS_EVENT_CD_STATUS_REQUEST, pkt);
         }
-    } else if (pkt[IBUS_PKT_DST] == IBUS_DEVICE_DIA &&
-               pkt[IBUS_PKT_LEN] > 8 &&
-               pkt[IBUS_PKT_CMD] == IBUS_CMD_DIA_DIAG_RESPONSE
+    } else if (
+        pkt[IBUS_PKT_DST] == IBUS_DEVICE_DIA &&
+        pkt[IBUS_PKT_LEN] > 8 &&
+        pkt[IBUS_PKT_CMD] == IBUS_CMD_DIA_DIAG_RESPONSE
     ) {
         LogRaw(
             "\r\nIBus: RAD P/N: %d%d%d%d%d%d%d HW: %02d SW: %d%d Build: %d%d/%d%d\r\n",
@@ -833,6 +854,10 @@ static void IBusHandleRADMessage(IBus_t *ibus, uint8_t *pkt)
             pkt[IBUS_PKT_DB1] == 0x41 &&
             pkt[IBUS_PKT_DB2] == 0x30
         ) {
+            EventTriggerCallback(IBUS_EVENT_RAD_WRITE_DISPLAY, pkt);
+        }
+    } else if (pkt[IBUS_PKT_DST] == IBUS_DEVICE_IRIS) {
+        if (pkt[IBUS_PKT_CMD] == IBUS_CMD_RAD_UPDATE_MAIN_AREA) {
             EventTriggerCallback(IBUS_EVENT_RAD_WRITE_DISPLAY, pkt);
         }
     } else if (pkt[IBUS_PKT_DST] == IBUS_DEVICE_LOC) {
@@ -979,19 +1004,15 @@ void IBusProcess(IBus_t *ibus)
             uint8_t msgLength = ibus->rxBuffer[1] + 2;
             // Make sure we do not read more than the maximum packet length
             if (msgLength > IBUS_MAX_MSG_LENGTH) {
-                long long unsigned int ts = (long long unsigned int) TimerGetMillis();
-                LogRawDebug(
+                LogDebugByteArray(
                     LOG_SOURCE_IBUS,
-                    "[%llu] ERROR: IBus: RX Invalid Length [%d - %02X]: ",
-                    ts,
+                    ibus->rxBuffer,
+                    ibus->rxBufferIdx,
+                    NULL,
+                    "ERROR: IBus: RX Invalid Length [%d - %02X]",
                     msgLength,
                     ibus->rxBuffer[1]
                 );
-                uint8_t idx;
-                for (idx = 0; idx < ibus->rxBufferIdx; idx++) {
-                    LogRawDebug(LOG_SOURCE_IBUS, "%02X ", ibus->rxBuffer[idx]);
-                }
-                LogRawDebug(LOG_SOURCE_IBUS, "\r\n");
                 ibus->rxBufferIdx = 0;
                 memset(ibus->rxBuffer, 0, IBUS_RX_BUFFER_SIZE);
                 CharQueueReset(&ibus->uart.rxQueue);
@@ -1000,14 +1021,12 @@ void IBusProcess(IBus_t *ibus)
                 uint8_t idx;
                 uint8_t pkt[msgLength];
                 memset(pkt, 0, msgLength);
-                long long unsigned int ts = (long long unsigned int) TimerGetMillis();
-                LogRawDebug(LOG_SOURCE_IBUS, "[%llu] DEBUG: IBus: RX[%d]: ", ts, msgLength);
                 for(idx = 0; idx < msgLength; idx++) {
                     pkt[idx] = ibus->rxBuffer[idx];
-                    LogRawDebug(LOG_SOURCE_IBUS, "%02X ", pkt[idx]);
                 }
+                const char *suffix = 0;
                 if (memcmp(ibus->txBuffer[ibus->txBufferReadbackIdx], pkt, msgLength) == 0) {
-                    LogRawDebug(LOG_SOURCE_IBUS, "[SELF]");
+                    suffix = "[SELF]";
                     memset(ibus->txBuffer[ibus->txBufferReadbackIdx], 0, IBUS_MAX_MSG_LENGTH);
                     if (ibus->txBufferReadbackIdx + 1 == IBUS_TX_BUFFER_SIZE) {
                         ibus->txBufferReadbackIdx = 0;
@@ -1016,7 +1035,7 @@ void IBusProcess(IBus_t *ibus)
                     }
                     ibus->txRetries = 0;
                 }
-                LogRawDebug(LOG_SOURCE_IBUS, "\r\n");
+                LogDebugByteArray(LOG_SOURCE_IBUS, pkt, msgLength, suffix, "DEBUG: IBus: RX[%d]", msgLength);
                 if (IBusValidateChecksum(pkt) == 1) {
                     uint8_t srcSystem = pkt[IBUS_PKT_SRC];
                     if (srcSystem == IBUS_DEVICE_BLUEBUS &&
@@ -1032,6 +1051,9 @@ void IBusProcess(IBus_t *ibus)
                     }
                     if (srcSystem == IBUS_DEVICE_IKE) {
                         IBusHandleIKEMessage(ibus, pkt);
+                    }
+                    if (srcSystem == IBUS_DEVICE_IRIS) {
+                        IBusHandleIRISMessage(ibus, pkt);
                     }
                     if (srcSystem == IBUS_DEVICE_GT) {
                         IBusHandleGTMessage(ibus, pkt);
@@ -1151,18 +1173,14 @@ void IBusProcess(IBus_t *ibus)
             (now - ibus->rxLastStamp) > IBUS_RX_BUFFER_TIMEOUT ||
             (ibus->rxBufferIdx + 1) == IBUS_RX_BUFFER_SIZE
         ) {
-            long long unsigned int ts = (long long unsigned int) TimerGetMillis();
-            LogRawDebug(
+            LogDebugByteArray(
                 LOG_SOURCE_IBUS,
-                "[%llu] ERROR: IBus: RX Buffer Timeout [%d]: ",
-                ts,
+                ibus->rxBuffer,
+                ibus->rxBufferIdx,
+                NULL,
+                "ERROR: IBus: RX Buffer Timeout [%d]",
                 ibus->rxBufferIdx
             );
-            uint8_t idx;
-            for (idx = 0; idx < ibus->rxBufferIdx; idx++) {
-                LogRawDebug(LOG_SOURCE_IBUS, "%02X ", ibus->rxBuffer[idx]);
-            }
-            LogRawDebug(LOG_SOURCE_IBUS, "\r\n");
             LogRaw("IBus: ERR_TMO[%d]\r\n", ibus->rxBufferIdx);
             ibus->rxBufferIdx = 0;
             memset(ibus->rxBuffer, 0, IBUS_RX_BUFFER_SIZE);
@@ -2809,7 +2827,7 @@ void IBusCommandIRISDisplayWrite(IBus_t *ibus, char *text)
     memset(&displayText, 0, frameSize);
     displayText[0] = IBUS_CMD_RAD_UPDATE_MAIN_AREA;
     displayText[1] = 0x00;
-    displayText[2] = 0x30;
+    displayText[2] = 0x32;
     memcpy(displayText + 3, text, len);
     IBusSendCommand(
         ibus,
@@ -2824,12 +2842,14 @@ void IBusCommandIRISDisplayWrite(IBus_t *ibus, char *text)
 /**
  * IBusCommandLMActivateBulbs()
  *     Description:
- *        Light module diagnostics: Activate bulbs
+ *        Light module diagnostics: Activate bulbs via STEUERN diagnostic job.
+ *        Handles blinkers, parking/side marker lights, and welcome/follow-me
+ *        home lighting (high beams + tail lamps).
  *     Params:
  *         IBus_t *ibus - The pointer to the IBus_t object
  *         uint8_t blinkerSide - left or right blinker
  *         uint8_t parkingLights - Activate the parking lights
- *         uint8_t homeLights - Activate Welcome / Follow-Me Home lights
+ *         uint8_t homeLights - IBUS_LM_HOME_OFF / WELCOME / FOLLOW
  *     Returns:
  *         void
  */
