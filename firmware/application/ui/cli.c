@@ -778,6 +778,12 @@ void CLIProcess()
                         currentVehicleId[3] & 0xF,
                         currentVehicleId[4]
                     );
+                } else if (UtilsStricmp(msgBuf[1], "LMPOLL") == 0) {
+                    if (ConfigGetSetting(CONFIG_SETTING_LM_IO_POLL_DISABLED) == CONFIG_SETTING_ON) {
+                        LogRaw("LM Poll: Off\r\n");
+                    } else {
+                        LogRaw("LM Poll: On\r\n");
+                    }
                 } else {
                     cmdSuccess = 0;
                 }
@@ -1131,38 +1137,46 @@ void CLIProcess()
                     CLIWrite("    BT PAUSE - Send the AVRCP Pause Command\r\n");
                     CLIWrite("    BT RESTORE - Reset the BM83\r\n");
                 }
-                CLIWrite("    BT PBOPEN - Open a PBAP session with the connected device\r\n");
-                CLIWrite("    BT PBCLOSE - Close the PBAP session\r\n");
-                CLIWrite("    BT PBGET <offset> - Get phonebook contacts starting at offset\r\n");
-                CLIWrite("    BT AT command> - Send raw AT command\r\n");
-                CLIWrite("    BT DIAL <number> <name> - Dial a number and display name\r\n");
-                CLIWrite("    BT REDIAL - Dial last number\r\n");
-                CLIWrite("    GET DAC - Get info from the PCM5122 DAC\r\n");
-                CLIWrite("    GET ERR - Get the Error counter\r\n");
-                CLIWrite("    GET IBUS - Get debug info from the IBus\r\n");
-                CLIWrite("    GET UI - Get the current UI Mode\r\n");
-                CLIWrite("    GET I2S - Read the WM8804 INT/SPD Status registers\r\n");
-                CLIWrite("    GET VIN - Read the stored vehicle VIN\r\n");
-                CLIWrite("    REBOOT - Reboot the device\r\n");
-                CLIWrite("    SET COMFORT BLINKERS x - Set the comfort blinkers between 1 and 8\r\n");
-                CLIWrite("    SET COMFORT LOCK x - Lock the car at the given KM/h. 10, 20 or OFF\r\n");
-                CLIWrite("    SET COMFORT UNLOCK x - Unlock the car at the given ignition position. POS0, POS1 or OFF\r\n");
-                CLIWrite("    SET DAC GAIN xx - Set the PCM5122 gain from 0x00 - 0xCF (higher is lower)\r\n");
-                CLIWrite("    SET DSP INPUT ANALOG/DIGITAL/DEFAULT - Set the CD Changer DSP input\r\n");
-                CLIWrite("    SET HEADLESS ON/OFF - Enable or disable support for vehicles without a BMBT (Uncommon -- Do not use unless directed to)\r\n");
-                CLIWrite("    SET IGN ON/OFF/ALWAYSON - Send the ignition status message or configure the BlueBus to assume the ignition is always on\r\n");
-                CLIWrite("    SET LOG x ON/OFF - Change logging for x (BT, IBUS, SYS, UI)\r\n");
-                CLIWrite("    SET PWROFF ON/OFF - Enable or disable auto power off\r\n");
-                CLIWrite("    SET TEL ON/OFF - Enable/Disable output as the TCU\r\n");
-                CLIWrite("    SET TIME HH MM - Set the IKE Time\r\n");
-                CLIWrite("    SET UI x - Set the UI to x, where x:\r\n");
-                CLIWrite("        x = 1. CD53 (Business Radio)\r\n");
-                CLIWrite("        x = 2. BMBT (Navigation)\r\n");
-                CLIWrite("        x = 3. MID (Multi-Info Display)\r\n");
-                CLIWrite("        x = 4. BMBT / MID\r\n");
-                CLIWrite("        x = 5. Business Navigation (MIR)\r\n");
-                CLIWrite("    RESTORE - Fully Reset the BlueBus and BC127 to factory defaults\r\n");
-                CLIWrite("    VERSION - Get the BlueBus Hardware/Software Versions\r\n");
+                LogRaw("    BT PBOPEN - Open a PBAP session with the connected device\r\n");
+                LogRaw("    BT PBCLOSE - Close the PBAP session\r\n");
+                LogRaw("    BT PBGET <offset> - Get phonebook contacts starting at offset\r\n");
+                LogRaw("    BT AT command> - Send raw AT command\r\n");
+                LogRaw("    BT DIAL <number> <name> - Dial a number and display name\r\n");
+                LogRaw("    BT REDIAL - Dial last number\r\n");
+                LogRaw("    SEND IBUS <src> <size> <dst> <data bytes...> - Send a raw IBus packet, <size> is ignored (calculated), bytes are 2 digit HEX\r\n");
+                LogRaw("    GET BYTE <addr> - Read a stored config byte at address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
+                LogRaw("    GET DAC - Get info from the PCM5122 DAC\r\n");
+                LogRaw("    GET ERR - Get the Error counters\r\n");
+                LogRaw("    GET IBUS - Get debug info from the IBus (graphics terminal and radio)\r\n");
+                LogRaw(".   GET LCM - Get debug info from the light control module\r\n");
+                LogRaw("    GET UI - Get the current UI Mode\r\n");
+                LogRaw("    GET I2S - Read the WM8804 INT/SPD Status registers\r\n");
+                LogRaw("    GET VIN - Read the stored vehicle VIN\r\n");
+                LogRaw("    GET PWROFF - Get the auto power off Status\r\n");
+                LogRaw("    GET LMPOLL - Get the LM Polling Status\r\n");
+                LogRaw("    REBOOT - Reboot the device\r\n");
+                LogRaw("    RESET TRAPS - Reset the Error counters\r\n");
+                LogRaw("    SET BYTE <addr> <value> - Write a config byte <value> to address <addr> (between 0x%02X and 0x%02X)\r\n", CONFIG_SETTING_START_ADDRESS, CONFIG_SETTING_END_ADDRESS);
+                LogRaw("    SET COMFORT BLINKERS x - Set the comfort blinkers between 1 and 8\r\n");
+                LogRaw("    SET COMFORT LOCK x - Lock the car at the given KM/h. 10, 20 or OFF\r\n");
+                LogRaw("    SET COMFORT UNLOCK x - Unlock the car at the given ignition position. POS0, POS1 or OFF\r\n");
+                LogRaw("    SET DAC GAIN xx - Set the PCM5122 gain from 0x00 - 0xCF (higher is lower)\r\n");
+                LogRaw("    SET DSP INPUT ANALOG/DIGITAL/DEFAULT - Set the CD Changer DSP input\r\n");
+                LogRaw("    SET IGN ON/OFF/ALWAYSON - Send the ignition status message or configure the BlueBus to assume the ignition is always on\r\n");
+                LogRaw("    SET LOG x ON/OFF - Change logging for x (BT, IBUS, SYS, UI)\r\n");
+                LogRaw("    SET PWROFF ON/OFF - Enable or disable auto power off\r\n");
+                LogRaw("    SET LMPOLL ON/OFF - Enable or disable polling the LM status\r\n");
+                LogRaw("    SET TEL ON/OFF - Enable/Disable output as the TCU\r\n");
+                LogRaw("    SET TIME HH MM - Set the IKE Time\r\n");
+                LogRaw("    SET UI x - Set the UI to x, where x:\r\n");
+                LogRaw("        x = 1. CD53 (Business Radio)\r\n");
+                LogRaw("        x = 2. BMBT (Navigation)\r\n");
+                LogRaw("        x = 3. MID (Multi-Info Display)\r\n");
+                LogRaw("        x = 4. BMBT / MID\r\n");
+                LogRaw("        x = 5. Business Navigation (MIR)\r\n");
+                LogRaw("    SET VIN CLEAR - Clear the stored VIN\r\n");
+                LogRaw("    RESTORE - Fully Reset the BlueBus and BC127 to factory defaults\r\n");
+                LogRaw("    VERSION - Get the BlueBus Hardware/Software Versions\r\n");
             } else {
                 cmdSuccess = 0;
             }
