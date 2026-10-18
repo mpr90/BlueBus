@@ -410,7 +410,9 @@ void HandlerIBusBlueBusTELStatusUpdate(void *ctx, uint8_t *pkt)
 {
     HandlerContext_t *context = (HandlerContext_t *) ctx;
     if (pkt[IBUS_PKT_DB1] == IBUS_BLUEBUS_SUBCMD_SET_STATUS_TEL) {
-        context->telStatus = pkt[IBUS_PKT_DB2];
+        // Volume frames have been transmitted at this point,
+        // so check the TEL status from the current state reported by the BTM
+        context->telStatus = HandlerGetIBusTELStatus(context);
     }
 }
 
@@ -1484,7 +1486,51 @@ void HandlerIBusMFLButton(void *ctx, uint8_t *pkt)
 {
     HandlerContext_t *context = (HandlerContext_t *) ctx;
     uint8_t mflButton = pkt[IBUS_PKT_DB1];
-    if (ConfigGetSetting(CONFIG_SETTING_HFP) == CONFIG_SETTING_ON) {
+    if (ConfigGetSetting(CONFIG_SETTING_HEADLESS) == CONFIG_SETTING_ON) {
+        // Support for using the BlueBus in a Nav car without a BMBT
+        // (because racecar?)
+        if (ConfigGetSetting(CONFIG_SETTING_HFP) == CONFIG_SETTING_ON) {
+            if (mflButton == IBUS_MFL_BTN_EVENT_VOICE_HOLD) {
+                context->mflButtonStatus = HANDLER_MFL_STATUS_SPEAK_HOLD;
+                if (context->bt->status == BT_STATUS_CONNECTED) {
+                    BTCommandToggleVoiceRecognition(context->bt);
+                }
+            }
+        }
+        if (mflButton == IBUS_MFL_BTN_EVENT_VOICE_PRESS) {
+            uint8_t msg[] = {
+                IBUS_CMD_BMBT_BUTTON1,
+                0x23
+            };
+            IBusSendCommand(
+                context->ibus,
+                IBUS_DEVICE_BMBT,
+                IBUS_DEVICE_RAD,
+                msg,
+                sizeof(msg)
+            );
+        } else if (mflButton == IBUS_MFL_BTN_EVENT_VOICE_REL) {
+            uint8_t msg[] = {
+                IBUS_CMD_BMBT_BUTTON1,
+                0xA3
+            };
+            IBusSendCommand(
+                context->ibus,
+                IBUS_DEVICE_BMBT,
+                IBUS_DEVICE_RAD,
+                msg,
+                sizeof(msg)
+            );
+        } else if (mflButton == IBUS_MFL_BTN_EVENT_VOICE_HOLD) {
+            if (context->bt->status != BT_STATUS_CONNECTED) {
+                if (context->bt->discoverable == BT_STATE_OFF) {
+                    BTCommandSetDiscoverable(context->bt, BT_STATE_ON);
+                } else {
+                    BTCommandSetDiscoverable(context->bt, BT_STATE_OFF);
+                }
+            }
+        }
+    } else if (ConfigGetSetting(CONFIG_SETTING_HFP) == CONFIG_SETTING_ON) {
         if (mflButton == IBUS_MFL_BTN_EVENT_VOICE_PRESS) {
             context->mflButtonStatus = HANDLER_MFL_STATUS_OFF;
         }
@@ -1936,7 +1982,7 @@ void HandlerIBusSensorValueUpdate(void *ctx, uint8_t *type)
 /**
  * HandlerIBusTELVolumeChange()
  *     Description:
- *         Adjust the volume for calls when asked to do so by the BMBT / MID.
+ *         Adjust the volume for calls when asked to do so.
  *         If the vehicle has a DSP or MID, then forward those changes to the DSP
  *         or RAD rather than adjusting the DAC volume.
  *     Params:
@@ -1948,22 +1994,20 @@ void HandlerIBusSensorValueUpdate(void *ctx, uint8_t *type)
 void HandlerIBusTELVolumeChange(void *ctx, uint8_t *pkt)
 {
     HandlerContext_t *context = (HandlerContext_t *) ctx;
-    if (
-        ConfigGetSetting(CONFIG_SETTING_HFP) == CONFIG_SETTING_OFF ||
-        (
-            context->uiMode != CONFIG_UI_BMBT &&
-            context->uiMode != CONFIG_UI_MID &&
-            context->uiMode != CONFIG_UI_MID_BMBT
-        )
-    ) {
+    if (ConfigGetSetting(CONFIG_SETTING_HFP) == CONFIG_SETTING_OFF) {
         return;
     }
     uint8_t direction = pkt[IBUS_PKT_DB1] & 0x01;
     uint8_t steps = pkt[IBUS_PKT_DB1] >> 4;
-    // Forward volume changes to the RAD / DSP when in Bluetooth mode
-    if (HandlerGetTelMode(context) == HANDLER_TEL_MODE_AUDIO) {
+    // Forward volume changes to the RAD / DSP when in Bluetooth mode.
+    // Use the current mode so a mid-call CDC state change cannot send us down
+    // the wrong branch
+    if (context->telMode == HANDLER_TEL_MODE_AUDIO) {
         int8_t volume = ConfigGetSetting(CONFIG_SETTING_TEL_VOL);
-        if (context->ibus->vehicleType == IBUS_VEHICLE_TYPE_E8X) {
+        if (
+            context->ibus->vehicleType == IBUS_VEHICLE_TYPE_E8X &&
+            (context->uiMode == CONFIG_UI_BMBT || context->uiMode == CONFIG_UI_MID_BMBT)
+        ) {
             // Drop Telephony mode so the radio acknowledges the volume changes
             HandlerSetIBusTELStatus(context, IBUS_TEL_STATUS_ACTIVE_POWER_HANDSFREE);
         }
@@ -1992,6 +2036,9 @@ void HandlerIBusTELVolumeChange(void *ctx, uint8_t *pkt)
             }
         }
         ConfigSetSetting(CONFIG_SETTING_TEL_VOL, volume);
+        // Keep the offset we owe the radio in step with the user's change so
+        // the call teardown restores the pre-call volume exactly
+        context->telVolSteps = (uint8_t) volume;
     } else {
         uint8_t volume = ConfigGetSetting(CONFIG_SETTING_DAC_TEL_TCU_MODE_VOL);
         // PCM51XX volume gets lower as you raise the value in the register
